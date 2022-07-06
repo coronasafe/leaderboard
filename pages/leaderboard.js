@@ -4,15 +4,9 @@ import Header from "../components/Header";
 import PageHead from "../components/PageHead";
 import { getContributors } from "../lib/api";
 import Image from "next/image";
+import { getWeek, getWeekNumber } from "../lib/utils";
 
-// Calculate week number
-const getWeekNumber = (date) => {
-  const d = new Date(date);
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
-};
+
 
 const categories = [
   { slug: "eod_update", title: "EOD Updates" },
@@ -37,11 +31,11 @@ export default function Home(props) {
                   <div className="terminal-container-bg border text-white rounded-lg border-primary-500">
                     <div className="flex space-x-2 px-6 py-3 border-b border-primary-500 ">
                       <span>
-                        Live Leaderboard of last 7 days | Week{" "}
+                        Live Leaderboard of last 7 days | {getWeek(new Date)} |  Week{" "}
                         {getWeekNumber(new Date())} of{" "}
                         {new Date().getFullYear()}
-                      </span>
-                    </div>
+                      </span >
+                    </div >
                     <ul className="space-y-6 lg:space-y-8 p-2 lg:p-2 overflow-x-auto">
                       {props.contributors
                         .filter((contributor) => contributor.intern)
@@ -57,9 +51,9 @@ export default function Home(props) {
                           );
                         })}
                     </ul>
-                  </div>
-                </div>
-              </div>
+                  </div >
+                </div >
+              </div >
               <div className="lg:col-span-5 2xl:col-span-4">
                 <div>
                   <div className="mx-auto py-12 px-4 max-w-6xl sm:px-6 lg:px-8 lg:py-24">
@@ -91,10 +85,10 @@ export default function Home(props) {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
+            </div >
+          </div >
+        </div >
+      </section >
 
       <footer className="">
         <div className="bg-gray-800 p-4 lg:p-10 border-t border-gray-700 h-full">
@@ -114,7 +108,7 @@ export default function Home(props) {
           </div>
         </div>
       </footer>
-    </div>
+    </div >
   );
 }
 
