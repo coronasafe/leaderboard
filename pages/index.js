@@ -1,10 +1,9 @@
-import Head from "next/head";
 import Link from "next/link";
-import { useEffect } from "react";
 import InfoCard from "../components/contributors/InfoCard";
 import Header from "../components/Header";
 import PageHead from "../components/PageHead";
 import { getContributors } from "../lib/api";
+import { getWeek } from '../lib/utils';
 
 export default function Home(props) {
   return (
@@ -77,7 +76,7 @@ export default function Home(props) {
                     <div className="flex justify-between items-end bg-gray-800 rounded-t-lg px-6 py-4 border-b border-gray-700 ">
                       <p className="text-xl font-medium">Leaderboard</p>
                       <span className="block text-gray-400">
-                        18 - 24 May 2022
+                        <span>Leaderboard | {getWeek(new Date())} </span>
                       </span>
                     </div>
                     <div className="space-y-2 p-4 ">
