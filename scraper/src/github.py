@@ -30,15 +30,13 @@ def serializer(obj):
 
 
 class GitHubScraper:
-    def __init__(
-        self, org, token, data_dir, date, days_back=1, log_level=logging.INFO
-    ):
+    def __init__(self, org, token, data_dir, date, hours_back=24, log_level=logging.INFO):
         self.log = logging.getLogger("GitHubScraper")
         self.log.setLevel(log_level)
         self.org = org
         self.token = token
-        self.start_date = (date - timedelta(days=days_back)).date()
-        self.end_date = date.date()
+        self.start_datetime = date - timedelta(hours=hours_back)
+        self.end_datetime = date
         self.data = {}
         self.data_dir = data_dir
         self.headers = {
@@ -46,9 +44,7 @@ class GitHubScraper:
             # https://docs.github.com/en/rest/overview/media-types
             "Accept": "application/vnd.github.v3.raw+json",
         }
-        self.log.debug(
-            f"Fetching events for {self.org} from {self.start_date} to {self.end_date}"
-        )
+        self.log.debug(f"Fetching events for {self.org} from {self.start_datetime} to {self.end_datetime}")
 
     def append(self, user, event):
         self.log.debug(f"Appending event for {user}")
@@ -120,10 +116,7 @@ class GitHubScraper:
                     },
                 )
 
-            elif (
-                event["payload"]["action"] == "closed"
-                and event["payload"]["pull_request"]["merged"]
-            ):
+            elif event["payload"]["action"] == "closed" and event["payload"]["pull_request"]["merged"]:
                 self.append(
                     event["payload"]["pull_request"]["user"]["login"],
                     {
@@ -163,9 +156,9 @@ class GitHubScraper:
         for event in events:
             event_time = datetime.strptime(event["created_at"], "%Y-%m-%dT%H:%M:%S%z")
 
-            if event_time.date() > self.end_date:
+            if event_time > self.end_datetime:
                 continue
-            elif event_time.date() <= self.start_date:
+            elif event_time <= self.start_datetime:
                 return self.data
             self.parse_event(event, event_time)
             events_count += 1
@@ -253,10 +246,10 @@ def main():
     )
     parser.add_argument(
         "-n",
-        "--num-days",
+        "--num-hours",
         required=False,
-        help="Number of days to scrape",
-        default=1,
+        help="Number of hours to scrape",
+        default=24,
     )
     parser.add_argument(
         "-l",
@@ -277,7 +270,7 @@ def main():
         exit(1)
 
     if args.date is None:
-        date = datetime.now(tz=ZoneInfo("UTC")) - timedelta(days=1)
+        date = datetime.now(tz=ZoneInfo("UTC"))
     else:
         date = datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=ZoneInfo("UTC"))
 
@@ -286,7 +279,7 @@ def main():
         token,
         Path(args.data_dir),
         date,
-        days_back=args.num_days,
+        hours_back=int(args.num_hours),
         log_level=getattr(logging, args.loglevel),
     )
     scraper.run()
