@@ -1,21 +1,42 @@
 import LoadingText from "@/components/LoadingText";
 import { IGitHubEvent } from "@/lib/gh_events";
-import GitHubEvent from "@/components/gh_events/GitHubEvent";
 import { env } from "@/env.mjs";
 import octokit from "@/lib/octokit";
+import { fetchAllReposName } from "../api/leaderboard/functions";
+import GithubFeedFilter from "../../components/gh_events/GithubFeedFilter";
+import GitHubEvent from "@/components/gh_events/GitHubEvent";
+import { FilterOption } from "@/lib/types";
 
 const GITHUB_ORG: string = env.NEXT_PUBLIC_GITHUB_ORG;
 
 export const revalidate = 600;
-
-type Props = {
+interface FeedPageProps {
   searchParams: {
-    page?: string;
+    repository: string;
+    events: string;
   };
-};
+}
 
-export default async function FeedPage({ searchParams }: Props) {
-  const events = await octokit.paginate(
+export default async function FeedPage({ searchParams }: FeedPageProps) {
+  const repositories = await fetchAllReposName();
+  const filterEvents: FilterOption[] = [
+    { title: "repository", options: repositories },
+    {
+      title: "events",
+      options: [
+        "PullRequest ReviewCommentEvent",
+        "PullRequest ReviewEvent",
+        "Member Event",
+        "Issues Event",
+        "Issue CommentEvent",
+        "Pull RequestEvent",
+        "Push Event",
+        "Fork Event",
+        "Release Event",
+      ],
+    },
+  ] as const;
+  let allEvents = await octokit.paginate(
     "GET /orgs/{org}/events",
     {
       org: GITHUB_ORG,
@@ -26,18 +47,36 @@ export default async function FeedPage({ searchParams }: Props) {
       return data.filter(exludeBotEvents).filter(excludeBlacklistedEvents);
     },
   );
-  if (!Object.entries(events).length) {
+  if (!Object.entries(allEvents).length) {
     return <LoadingText text="Fetching latest events" />;
   }
+
+  if (searchParams.repository) {
+    allEvents = allEvents.filter((e) =>
+      e.repo.name.includes(
+        env.NEXT_PUBLIC_GITHUB_ORG + "/" + searchParams.repository,
+      ),
+    );
+  }
+
+  if (searchParams.events) {
+    allEvents = allEvents.filter((e) => e.type === searchParams.events);
+  }
+
   return (
-    <div className="relative mx-auto my-8 flow-root max-w-4xl p-4">
-      <h1 className="text-4xl text-primary-500 dark:text-white">Feed</h1>
-      <ul role="list" className="mb-20 mt-10 flex flex-col gap-4 space-y-4">
-        {events.map((e) => (
-          <GitHubEvent key={e.id} event={e} />
-        ))}
-      </ul>
-    </div>
+    <>
+      <div className="flex-col">
+        <GithubFeedFilter filterEvents={filterEvents} />
+        <div className="relative flow-root w-full max-w-4xl p-4 lg:my-8">
+          <h1 className="text-4xl text-primary-500 dark:text-white">Feed</h1>
+          <ul role="list" className="mb-20 mt-10 flex flex-col gap-4 space-y-4">
+            {allEvents.map((e) => (
+              <GitHubEvent key={e.id} event={e} />
+            ))}
+          </ul>
+        </div>
+      </div>
+    </>
   );
 }
 
