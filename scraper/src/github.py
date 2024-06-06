@@ -9,7 +9,7 @@ from os import getenv
 from pathlib import Path
 from urllib.parse import parse_qsl, urlparse
 from zoneinfo import ZoneInfo
-
+from linked_issue_parser import LinkedIssueParser
 import requests
 
 logging.basicConfig(
@@ -71,6 +71,14 @@ class GitHubScraper:
                 "authored_issue_and_pr": [],
             }
 
+    def parse_linked_issues(self, pr_body):
+        if isinstance(pr_body, str):
+            pattern = r"#(\d+)"
+            matches = re.findall(pattern, pr_body)
+            return len(set(matches))
+        else:
+            return 0  
+
     def parse_event(self, event, event_time):
         user = event["actor"]["login"]
         try:
@@ -124,7 +132,7 @@ class GitHubScraper:
                         "title": f'{event["repo"]["name"]}#{event["payload"]["pull_request"]["number"]}',
                         "time": event_time,
                         "link": event["payload"]["pull_request"]["html_url"],
-                        "text": event["payload"]["pull_request"]["title"],
+                        "text": event["payload"]["pull_request"]["title"]
                     },
                 )
 
@@ -133,6 +141,15 @@ class GitHubScraper:
                 and event["payload"]["pull_request"]["merged"]
             ):
                 turnaround_time = self.caclculate_turnaround_time(event)
+                pr_body = event["payload"]["pull_request"]["body"]
+                repo = event["repo"]["name"]
+                parts = repo.split('/')
+                org_name = parts[0]
+                repo_name = parts[1]
+                pr_no = event['payload']['pull_request']['number']
+                linked_issue_parser = LinkedIssueParser(org=org_name,repo=repo_name,pr_no=pr_no,pr_body=pr_body)
+                linked_issues = linked_issue_parser.parse_linked_issues()
+                self.log.debug(f'linked_issues for pr {pr_no} are {linked_issues}')
                 self.append(
                     event["payload"]["pull_request"]["user"]["login"],
                     {
@@ -142,6 +159,7 @@ class GitHubScraper:
                         "link": event["payload"]["pull_request"]["html_url"],
                         "text": event["payload"]["pull_request"]["title"],
                         "turnaround_time": turnaround_time,
+                        "linked_issues" : linked_issues
                     },
                 )
 

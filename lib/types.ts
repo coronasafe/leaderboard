@@ -42,6 +42,7 @@ export interface Highlights {
   pr_collaborated: number;
   issue_assigned: number;
   issue_opened: number;
+  linked_issues: number;
 }
 
 export interface WeekSummary {
@@ -76,6 +77,7 @@ export interface Activity {
   text: string;
   collaborated_with?: string[];
   turnaround_time?: number;
+  linked_issues?: string[]; //issues url, which are linked to merged prs
 }
 
 export interface OpenPr {
