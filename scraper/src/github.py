@@ -26,6 +26,7 @@ user_blacklist = {
     "codecov-commenter",
 }
 
+default_branch_repos = {}
 
 def is_blacklisted(login: str):
     return "[bot]" in login or login in user_blacklist
@@ -70,7 +71,7 @@ class GitHubScraper:
                 "open_prs": [],
                 "authored_issue_and_pr": [],
             }
-
+    
     def parse_event(self, event, event_time):
         user = event["actor"]["login"]
         try:
@@ -156,6 +157,38 @@ class GitHubScraper:
                     "title": f'{event["repo"]["name"]}#{event["payload"]["pull_request"]["number"]}',
                     "link": event["payload"]["review"]["html_url"],
                     "text": event["payload"]["pull_request"]["title"],
+                },
+            )
+
+        elif event["type"] == "PushEvent":
+            branch = event["payload"]["ref"].split('/')[-1] 
+            commits = event["payload"]["commits"]
+            all_commits = []
+
+            # Iterate through each commit
+            for commit in commits:
+                # Fetch full commit details
+                commit_details = requests.get(commit["url"], headers=self.headers).json()  
+                
+                if len(commit_details.get("parents", [])) < 2:  
+                    # Prepare commit data
+                    commit_data = {
+                        "link": commit_details["html_url"],
+                        "text": commit["message"],
+                        "sha" : commit["sha"][-7:],
+                    }
+                    # Append commit data to the array
+                    all_commits.append(commit_data)  
+
+            # Append pushed commits event
+            self.append(
+                user,
+                {
+                    "type": "pushed_commits",
+                    "time": event_time,
+                    "repo": event["repo"]["name"],
+                    "branch": branch,
+                    "commits": all_commits,
                 },
             )
 

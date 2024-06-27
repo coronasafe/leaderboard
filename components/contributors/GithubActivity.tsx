@@ -8,6 +8,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import RelativeTime from "../RelativeTime";
 import DateRangePicker from "../DateRangePicker";
 import { format } from "date-fns";
+import Link from "next/link";
 
 let commentTypes = (activityEvent: string[]) => {
   switch (activityEvent[0]) {
@@ -161,6 +162,37 @@ let renderText = (activity: Activity) => {
           </div>
         </div>
       );
+    case "pushed_commits":
+      return (
+        <div className="min-w-0 flex-1">
+          <div>
+            <p className="font-bold">
+              pushed({activity?.commits?.length}) commits to {activity.branch}{" "}
+              in {activity.repo}{" "}
+              <span className="text-foreground">
+                <RelativeTime time={activity.time} />
+              </span>
+            </p>
+          </div>
+          <div className="mt-2 rounded-lg border border-secondary-600 p-2 md:p-4">
+            {activity?.commits?.map((commit, index) => (
+              <div key={index} className="mb-2 flex items-center">
+                <Link
+                  href={commit.link}
+                  target="_blank"
+                  className="flex gap-2 text-secondary-500"
+                >
+                  <span>{commit.sha}</span>
+                  <span className="cursor-pointer break-words text-sm font-medium text-foreground hover:text-primary-500">
+                    {commit.text.split("\n")[0]}
+                  </span>
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
     default:
       return (
         <div className="min-w-0 flex-1 py-1.5">
@@ -480,6 +512,8 @@ export const ActivityCheckbox = (props: {
           pr_merged: "PR merged",
           pr_opened: "PR opened",
           pr_reviewed: "Code Review",
+          commit_direct: "Direct Commit",
+          pushed_commits: "Pushed Commits",
         }[props.type]
       }
       <span className="text-xs text-secondary-500 dark:text-secondary-400">
